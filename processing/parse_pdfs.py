@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 import tarfile
 from collections import Counter
 from pathlib import Path
@@ -14,6 +13,8 @@ import fitz
 import pandas as pd
 import requests
 
+from processing.classify_category import classify_case, normalize_text
+
 
 TAR_URL = "https://indian-supreme-court-judgments.s3.amazonaws.com/data/tar/year=2024/english/english.tar"
 METADATA_PATH = Path("data/processed/2024_metadata_cleaned.parquet")
@@ -21,106 +22,6 @@ TAR_PATH = Path("data/raw/english_2024.tar")
 PDF_DIR = Path("data/raw/pdfs")
 PARSED_DIR = Path("data/processed/parsed")
 ERROR_LOG = Path("data/processed/parse_errors.txt")
-
-CATEGORY_KEYWORDS = {
-    "Criminal": [
-        "bail",
-        "anticipatory bail",
-        "section 438",
-        "fir",
-        "ipc",
-        "crpc",
-        "criminal",
-        "accused",
-        "offence",
-        "conviction",
-        "sentence",
-        "murder",
-        "kidnapping",
-    ],
-    "Corporate": [
-        "company",
-        "companies act",
-        "director",
-        "shareholder",
-        "insolvency",
-        "ibc",
-        "nclt",
-        "nclat",
-        "corporate",
-        "arbitration",
-    ],
-    "Family": [
-        "marriage",
-        "divorce",
-        "custody",
-        "maintenance",
-        "matrimonial",
-        "adoption",
-        "family",
-    ],
-    "Cyber": [
-        "cyber",
-        "information technology act",
-        "it act",
-        "digital",
-        "online",
-        "electronic record",
-        "data protection",
-    ],
-    "Tax": [
-        "income tax",
-        "gst",
-        "customs",
-        "excise",
-        "tax",
-        "assessment",
-        "revenue",
-    ],
-    "Property": [
-        "property",
-        "land",
-        "possession",
-        "title",
-        "lease",
-        "tenancy",
-        "specific performance",
-        "sale deed",
-    ],
-    "Labour": [
-        "labour",
-        "industrial dispute",
-        "workman",
-        "employee",
-        "employer",
-        "service law",
-        "termination",
-        "wages",
-        "regularisation",
-    ],
-    "Constitutional": [
-        "constitution",
-        "article",
-        "fundamental rights",
-        "writ",
-        "constitutional",
-        "legislative competence",
-    ],
-}
-
-
-def normalize_text(text: str) -> str:
-    return re.sub(r"\s+", " ", text or "").strip()
-
-
-def classify_case(title: str, description: str, full_text: str) -> str:
-    signal = f"{title} {description} {full_text[:1000]}".lower()
-    scores = {
-        category: sum(signal.count(keyword) for keyword in keywords)
-        for category, keywords in CATEGORY_KEYWORDS.items()
-    }
-    best_category = max(scores, key=scores.get)
-    return best_category if scores[best_category] > 0 else "General"
 
 
 def download_tar() -> None:
